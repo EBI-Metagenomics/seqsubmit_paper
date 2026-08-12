@@ -28,9 +28,9 @@ authors:
 affiliations:
   - name: European Molecular Biology Laboratory, European Bioinformatics Institute (EMBL-EBI), Wellcome Genome Campus, Hinxton, UK
     index: 1
-date: <!-- TODO: submission date -->
+# date: <!-- TODO: submission date -->
 cito-bibliography: paper.bib
-event: <!-- TODO: confirm event code, e.g. BH25EU or similar -->
+# event: <!-- TODO: confirm event code, e.g. BH25EU or similar -->
 biohackathon_name: "nf-core Hackathon Barcelona 2025"
 biohackathon_url: "https://summit.nextflow.io/2025/barcelona/"
 biohackathon_location: "Barcelona, Spain, 2025"
@@ -60,38 +60,48 @@ Sequencing experiments generate valuable data that should be shared with the sci
 
 # Background
 
-Data sharing plays a vital role in advancing scientific research, reproducibility, and collaboration among researchers. By openly sharing datasets, scientists allow their work to continue benefiting the scientific community – enabling others to validate findings and build upon existing work thereby accelerating discovery across disciplines. There are many ways to make data publicly available, such as hosting files on institutional FTP servers or depositing datasets in general-purpose repositories like Zenodo, Figshare, Dryad, or institutional archives. These platforms provide accessible storage, assign persistent identifiers (e.g. DOIs), and support long-term preservation of research outputs.
+Data sharing plays a vital role in advancing scientific research. By openly sharing datasets, scientists allow their work to continue benefiting the scientific community – enabling others to validate findings and build upon existing work thereby accelerating discovery across disciplines. There are many ways to make data publicly available, such as hosting files on institutional FTP servers or depositing datasets in general-purpose repositories like Zenodo, Figshare, Dryad, or institutional archives. These platforms provide accessible storage, assign persistent identifiers (e.g. DOIs), and support long-term preservation of research outputs.
 
-However, general-purpose repositories are not well-suited for nucleotide sequence data. While they support file storage and citation, they do not enforce standardized metadata schemas or structured relationships between biological data entities, nor do they integrate deposited data into global sequence search systems. As a result, discovery, integration, and reuse become significantly more difficult.
+However, general-purpose repositories are not well-suited for nucleotide sequence data. While they support file storage and citation, they do not enforce standardized metadata schemas or structured relationships between biological data entities, nor do they integrate deposited data into global sequence search systems. As a result, they fall short of the FAIR principles (Findable, Accessible, Interoperable, and Reusable [@fair2016]): discovery, integration, and reuse become significantly more difficult.
 
-For biological sequence data, the International Nucleotide Sequence Database Collaboration (INSDC) — comprising the EMBL-EBI European Nucleotide Archive (ENA), NCBI GenBank, and the DNA Data Bank of Japan (DDBJ) — provides a unified, internationally synchronized archiving system designed specifically for nucleotide sequences. However, submission to INSDC databases is considerably more complex than uploading files to a general repository. Each provider has different submission interfaces, tools, and requirements, making the development of truly universal submission tools a significant challenge requiring expertise across multiple platforms and active community involvement.
+For biological sequence data, the International Nucleotide Sequence Database Collaboration (INSDC) — comprising the EMBL-EBI European Nucleotide Archive (ENA), NCBI GenBank, and the DNA Data Bank of Japan (DDBJ) — provides a unified, internationally synchronized archiving system designed specifically for nucleotide sequences. However, submission to INSDC databases is considerably more complex than uploading files to a general repository. Each provider has different submission interfaces, tools, and requirements, making submission itself a significant challenge that requires expertise.
 
-The authors of this pipeline's idea and hackathon project leaders are members of the MGnify team [@mgnify2023] – EMBL-EBI's resource for processing and storing metagenomic data. MGnify interacts with INSDC databases primarily by retrieving raw metagenomic reads from ENA and depositing derivative sequence data from various analysis pipelines. Each metagenomic sample contains DNA from many different organisms (such as bacteria, archaea, viruses, and fungi) living together in an environment (e.g., soil, gut, ocean water). Our general data analysing process starts with fetching sequenced raw reads data already submitted to ENA in FASTQ format. The most widely used data products we generate are metagenomic assemblies and Metagenome-Assembled Genomes (MAGs).
+The authors of this pipeline's idea and hackathon project leaders are members of the MGnify team [@mgnify2023] – EMBL-EBI's resource for processing and storing metagenomic data. MGnify interacts with INSDC databases primarily by retrieving raw metagenomic reads from ENA and depositing back derivative sequence data — metagenomic assemblies, bins, and Metagenome-Assembled Genomes (MAGs) — generated by its analysis pipelines (miassembler [@miassembler] and genomes-generation [@genomesgeneration]).
 
-Assembly is the process of reconstructing longer DNA sequences (called contigs) from short sequencing reads obtained from samples. Unlike traditional genome assembly, which deals with DNA from a single organism, metagenomic assembly must handle mixed and often unevenly distributed DNA sequences. Likewise, binning handles the mixed nature of metagenomes to group contigs that likely come from the same source organism based on various features. The resulting bins represent the genomes of individual microbial populations. This reconstruction process is computationally intensive and cannot realistically be run on a personal computer, which is itself an argument for making the resulting data — and the tools that submit it — as accessible and automated as possible, so that the effort is not duplicated by every group producing it independently.
+Assembly is the process of reconstructing longer DNA sequences (called contigs) from short sequencing reads obtained from a sample. Unlike traditional genome assembly, which contains DNA of a single organism, metagenomic assembly consists of mixed DNA sequences originating from multiple co-occurring organisms. A common approach to disentangle this mixture is binning: grouping contigs that likely originate from the same source organism based on features such as sequence composition and coverage. The resulting bins represent draft genomes of individual populations (TODO: find better definition than "individual populations") present in the sample. When a bin meets defined completeness, contamination, and quality thresholds — following, for example, the MIMAG standard [@bowers2017mimag] — it is termed a Metagenome-Assembled Genome (MAG): a genome reconstructed computationally from metagenomic data rather than sequenced from an isolated organism. This reconstruction process is computationally intensive and cannot realistically be run on a personal computer, which is itself an argument for making the resulting data — and the tools that submit it — as accessible and automated as possible, so that the effort is not duplicated by every group producing it independently.
 
-MGnify has established high-throughput automated processes for metagenomic assembly and bin/MAG generation. Over years of submitting these data products to ENA, the team has developed a set of Python packages to partially automate this process. In addition, we actively support external collaborators by sharing our tools and providing guidance for metagenomic data submission. To further simplify and streamline this process, we decided to consolidate our expertise into a single, fully automated pipeline.
+Over years of submitting metagenomic assemblies and bins/MAGs to ENA, the MGnify team has developed a set of Python packages to partially automate this process. In addition, we actively support external collaborators by sharing our tools and providing guidance for metagenomic data submission. To further simplify and streamline this process, we decided to consolidate our expertise into a single, fully automated pipeline.
 
 # Pipeline design
 
-SeqSubmit targets ENA as its first supported database, reflecting the MGnify team's existing expertise and infrastructure. As the project grows and attracts contributors familiar with NCBI and DDBJ submission systems, we intend to extend support to those databases (see Future work).
+SeqSubmit targets ENA as its first supported database, reflecting the MGnify team's existing expertise and infrastructure. As the project grows and attracts contributors familiar with NCBI and DDBJ submission systems, we intend to extend support to those databases.
 
-ENA organises sequencing data hierarchically (STUDY, SAMPLE, EXPERIMENT, RUN, ANALYSIS); each entity carries its own required metadata and must correctly reference its parent entities. We do not reproduce that model in detail here — full documentation is available from ENA [@ena_submit_docs] — but note that SeqSubmit's four submission modes mirror it directly: `reads` registers EXPERIMENT/RUN entities, while `metagenomic_assemblies`, `mags` and `bins` register ANALYSIS entities that reference pre-existing SAMPLE/RUN records.
+![Figure 1: SeqSubmit pipeline schema, showing raw reads, metagenomic assemblies, and MAGs/bins as inputs routed through their respective submission workflows to ENA.](../figures/seqsubmit_schema.png)
 
-SeqSubmit is designed to sit at the end of an analysis pipeline. In a typical metagenomics workflow, raw reads (already submitted to ENA) are used to generate assemblies, which are in turn used to derive bins and MAGs — for example with nf-core/mag [@krakau2022nfcoremag]. SeqSubmit consumes these final data products, computes any missing required statistics, compiles the associated ENA metadata, and performs a fully automated, validated submission using ENA's Webin-CLI [@webincli] — the same command-line client officially supported by ENA for programmatic, scalable submission.
+ENA organizes sequencing data in a hierarchical model:
+  -	STUDY: The overarching research project
+  -	SAMPLE: Biological specimens with associated metadata
+  -	EXPERIMENT: Sequencing of a sample, with library preparation details
+  -	RUN: Raw sequencing data (e.g. FASTQ files)
+  -	ANALYSIS: Processed data (e.g. assemblies, MAGs, annotations)
 
+Each entity carries its own required metadata and must correctly reference its parent entities. (TODO: add here an explanation of the purpose of this model). We do not reproduce that model in detail here — full documentation is available from ENA [@ena_submit_docs] — but note that SeqSubmit's four submission modes mirror it directly: `reads` registers EXPERIMENT and RUN entities that reference pre-existing SAMPLE records, while `metagenomic_assemblies`, `mags` and `bins` register ANALYSIS entities that reference pre-existing RUN records.
+
+SeqSubmit is designed to sit at the end of an analysis pipeline. In a typical metagenomics workflow, raw reads (already submitted to ENA) are used to generate assemblies, which are in turn used to derive bins and MAGs — for example with nf-core/mag [@krakau2022nfcoremag]. SeqSubmit consumes these final data products, computes any missing required statistics, compiles the associated ENA metadata, and performs a fully automated, validated submission using ENA's Webin-CLI [@webincli] — the command-line client officially supported by ENA.
+<!-- TODO I need to decide how to rewrite/delete this section: -->
 A practical question that arose during development is whether derived data (assemblies, MAGs, bins) must be submitted under a *new* ENA study, separate from the one holding the original raw reads. This is a **recommendation rather than a requirement**: users remain free to submit under their existing study if they own it. SeqSubmit defaults to creating a new, linked study mainly because outputs such as metagenomic assemblies are typically registered as Third Party Annotation (TPA) data, which cannot be added to the original raw-reads study; a new, explicitly linked study keeps this relationship traceable without constraining users who prefer to keep everything under one project.
 
+<!-- TODO this looks more like results to me -->
 Submissions can be marked public or private, with a configurable release date, so that data can be reserved ahead of a planned publication while still being formally registered.
 
-Table: SeqSubmit's four submission modes and the ENA-facing tool each one wraps.
+Table: SeqSubmit's four submission modes and  their corresponding pipeline workflows.
 
-| Mode                     | Workflow        | Data type                     | Submission tool                          |
-| ------------------------ | ---------------- | ------------------------------ | ----------------------------------------- |
-| `reads`                  | READSUBMIT       | Raw sequencing reads           | Webin-CLI [@webincli]                     |
-| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies (FASTA) | assembly\_uploader [@assemblyuploader] + Webin-CLI |
-| `mags`                   | GENOMESUBMIT     | Metagenome-assembled genomes   | genome\_uploader [@genomeuploader] + Webin-CLI |
-| `bins`                   | GENOMESUBMIT     | Metagenomic bins               | genome\_uploader [@genomeuploader] + Webin-CLI |
+| Mode                     | Workflow        | Data type                     |
+| ------------------------ | ---------------- | ------------------------------ |
+| `reads`                  | READSUBMIT       | Raw sequencing reads           |
+| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies (FASTA) |
+| `mags`                   | GENOMESUBMIT     | Metagenome-assembled genomes   |
+| `bins`                   | GENOMESUBMIT     | Metagenomic bins               |
 
 # Implementation
 
