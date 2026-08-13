@@ -9,10 +9,6 @@ tags:
   - metagenomics
   - data submission
 authors:
-  - name: Martin Beracochea
-    affiliation: 1
-    role: Conceptualization, Software, Writing – review & editing
-    # orcid: TODO
   - name: Ekaterina Sakharova
     affiliation: 1
     role: Software, Writing – review & editing
@@ -20,6 +16,10 @@ authors:
   - name: Sofia Ochkalova
     affiliation: 1
     role: Software, Writing – original draft
+    # orcid: TODO
+  - name: Martin Beracochea
+    affiliation: 1
+    role: Conceptualization, Software, Writing – review & editing
     # orcid: TODO
   - name: Tim Rozday
     affiliation: 1
@@ -45,11 +45,11 @@ authors_short: Beracochea \emph{et al.}
 <!--
 TODO before submission:
 - Confirm ORCID + exact affiliation/department for each author.
-- The work reported here also continued at "vibiome 2026" (per author note). I could not find a public,
-  BioHackrXiv-registered listing for this event (see https://index.biohackrxiv.org/meetings) — please
-  supply its full name, URL, location and dates so it can either be added as a second acknowledged event
-  or, if BioHackrXiv only supports one `biohackathon_*` block, credited explicitly in Acknowledgements.
 - Add project/group number if one was assigned at the hackathon.
+- The `biohackathon_*` YAML fields above only support one event (nf-core Hackathon Barcelona 2025,
+  where the project started); the second event, the 2026 Virus Bioinformatics + nf-core Hybrid
+  Collaborative Hackathon (ViBioM 2026 satellite event, Vilnius/online, 12-17 May 2026), is credited
+  in Acknowledgements and cited as [@vibiom2026_hackathon] in Results instead.
 -->
 
 # Abstract
@@ -147,20 +147,30 @@ SeqSubmit is developed under the nf-core template and community standards [@nfco
 
 # Results
 
-Version 1.0.0 of SeqSubmit was released in August 2026, supporting all four submission modes described above. As part of this work, three tools required for ENA submission — Webin-CLI, assembly\_uploader, and genome\_uploader — were newly wrapped as nf-core modules, making them reusable by other pipelines in the nf-core ecosystem. The pipeline passed nf-core's community review process ahead of release.
+Work on SeqSubmit began in October 2025 at the nf-core Hackathon Barcelona 2025, where the project's initial two modes, `metagenomic_assemblies` and `mags`/`bins`, were started; development of these two modes continued in the months that followed. A third mode, `reads`, was added in Spring 2026 at the nf-core/seqsubmit project of the 2026 Virus Bioinformatics + nf-core Hybrid Collaborative Hackathon, a satellite event of the International Virus Bioinformatics Meeting 2026 (ViBioM 2026) held online and in Vilnius, Lithuania [@vibiom2026_hackathon]. Version 1.0.0, bringing all four modes together, was released in August 2026.
 
-<!-- TODO: add any concrete usage/adoption numbers, test dataset results, or a worked example
-     once available. -->
+To wrap the ENA-facing tools each mode depends on, we developed nine pipeline-specific local modules: `registerstudy` and `ena_webin_cli_wrapper` handle study registration and submission itself; `create_reads_manifest`, `create_assembly_metadata_csv`, `generate_assembly_manifest`, `create_genome_metadata_tsv` and `genome_upload` prepare and submit the manifests for each data type via assembly\_uploader and genome\_uploader; and `rename_fasta_for_catpack` and `count_rna` support the taxonomic and rRNA/tRNA characterisation used by the `mags`/`bins` mode. Alongside these, we reused nine existing modules from the central nf-core/modules repository (including barrnap, CheckM2, CoverM, CAT\_pack and tRNAscan-SE).
+
+For taxonomic classification, we developed the `fasta_classify_catpack` subworkflow and contributed it back to the central nf-core/subworkflows repository, making it directly reusable by other nf-core pipelines. Three further subworkflows were kept local to SeqSubmit: one for input validation, one for genome quality assessment (completeness and contamination), and one for rRNA/tRNA gene detection.
+
+All input metadata is validated against dedicated JSON schemas — one per mode's samplesheet, plus one for the pipeline's own parameters — so malformed or incomplete input is caught with an informative error before a run starts, rather than failing partway through submission.
+
+We also built a suite of 18 nf-test tests exercising each module and workflow under the range of situations SeqSubmit is designed to handle: for example, whether a target STUDY accession is supplied or needs to be registered automatically, whether required statistics (coverage, completeness, contamination, taxonomy) are supplied or need to be computed, and single- versus paired-end reads.
+
+Beyond its own test suite, SeqSubmit has already been used in production: a partner project used the `metagenomic_assemblies`, `mags` and `bins` modes to submit its data to ENA, resulting in over 26,000 bins and MAGs and more than 5,000 assemblies (TODO: find real number of Christina's assemblies) deposited.
 
 # Discussion
 
-By consolidating previously separate, internally maintained Python tools into a single nf-core pipeline, SeqSubmit turns ENA submission from a manual, error-prone process into a repeatable pipeline step that can be inserted directly after an assembly/binning workflow such as nf-core/mag. Scoping the first release to ENA let us build on the MGnify team's existing tooling and submission experience, but it does mean SeqSubmit cannot yet submit directly to NCBI or DDBJ, even though INSDC's mirroring means ENA-submitted data becomes available across all three archives within 24 hours.
+By consolidating previously separate, internally maintained Python tools into a single nf-core pipeline, SeqSubmit turns ENA submission from a manual, error-prone process into a repeatable pipeline step that can be inserted directly after an assembly/binning workflow such as nf-core/mag [@krakau2022nfcoremag]. Scoping the first release to ENA let us build on the MGnify team's existing tooling and submission experience, but it does mean SeqSubmit cannot yet submit directly to NCBI or DDBJ, even though INSDC's mirroring means ENA-submitted data becomes available across all three archives.
 
 Some design decisions, such as whether to always create a new linked study for derived data, are deliberately framed as recommendations rather than hard requirements, since submitting groups vary in how they organise their own ENA projects.
 
 # Future work
 
-Planned extensions include optional automated removal of human-derived contigs prior to submission (not yet implemented, but required for some public-health and clinical use cases), broadening database support to NCBI and DDBJ, and community contributions of additional submission modes as new use cases emerge.
+On the roadmap is support for co-assemblies, so that assemblies and their derived bins/MAGs pooled from multiple sequencing runs can be submitted alongside single-run data ([nf-core/seqsubmit#61](https://github.com/nf-core/seqsubmit/issues/61); already underway for assemblies via [nf-core/seqsubmit#66](https://github.com/nf-core/seqsubmit/pull/66)). We also plan to extend metadata tracking so that assemblies and MAGs/bins can be submitted even when their source reads or assembly accession cannot currently be resolved automatically ([nf-core/seqsubmit#29](https://github.com/nf-core/seqsubmit/issues/29), [nf-core/seqsubmit#87](https://github.com/nf-core/seqsubmit/issues/87)), and to extend automated statistics generation beyond its current prokaryote focus to cover eukaryotic and viral MAGs/bins ([nf-core/seqsubmit#40](https://github.com/nf-core/seqsubmit/issues/40), [nf-core/seqsubmit#63](https://github.com/nf-core/seqsubmit/issues/63)). Further planned work includes adding dedicated handling for single-contig assemblies and MAGs/bins — which ENA classifies as chromosomal assemblies with their own submission procedure. Looking further ahead, we intend to extend submission support beyond ENA to NCBI and DDBJ as the project grows and attracts contributors experienced with those systems.
+
+Further planned extensions include optional automated removal of human-derived contigs prior to submission (not yet implemented, but advisable to comply with ethical and legal guidelines).
+
 
 # Links to software and data repositories
 
@@ -171,6 +181,6 @@ Planned extensions include optional automated removal of human-derived contigs p
 
 # Acknowledgements
 
-This work was started at the nf-core Hackathon Barcelona 2025 (28–29 October 2025), held alongside the Nextflow Summit 2025, and further developed at <!-- TODO: vibiome 2026 — full name/URL/location/dates -->. We thank Evangelos Karatzas for extensive assistance during development, and James Fellows Yates, Matthias De Smet, and Germana Baldi for their review and feedback.
+This work was started at the nf-core Hackathon Barcelona 2025 (28–29 October 2025), held alongside the Nextflow Summit 2025, and further developed at the 2026 Virus Bioinformatics + nf-core Hybrid Collaborative Hackathon (12–17 May 2026), a satellite event of the International Virus Bioinformatics Meeting 2026 held online and in Vilnius, Lithuania [@vibiom2026_hackathon]. We thank Evangelos Karatzas for extensive assistance during development, and James Fellows Yates, Matthias De Smet, and Germana Baldi for their review and feedback.
 
 # References
