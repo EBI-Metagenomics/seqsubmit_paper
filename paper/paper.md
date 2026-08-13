@@ -30,7 +30,7 @@ affiliations:
     index: 1
 date: 31/08/2026
 cito-bibliography: paper.bib
-# event: <!-- TODO: confirm event code, e.g. BH25EU or similar -->
+event: SEQSUBMIT25 # TODO: placeholder — replace with the real registered event code once assigned
 biohackathon_name: "nf-core Hackathon Barcelona 2025"
 biohackathon_url: "https://summit.nextflow.io/2025/barcelona/"
 biohackathon_location: "Barcelona, Spain, 2025"
@@ -50,6 +50,11 @@ TODO before submission:
   where the project started); the second event, the 2026 Virus Bioinformatics + nf-core Hybrid
   Collaborative Hackathon (ViBioM 2026 satellite event, Vilnius/online, 12-17 May 2026), is credited
   in Acknowledgements and cited as [@vibiom2026_hackathon] in Results instead.
+- `event: SEQSUBMIT25` above is a placeholder, only needed so the PDF generator doesn't crash
+  (it hard-requires a non-empty `event` field). Neither nf-core Hackathon Barcelona 2025 nor the
+  ViBioM 2026 satellite hackathon appear on BioHackrXiv's registered meetings list
+  (https://index.biohackrxiv.org/meetings) — contact the meeting organisers about registration,
+  then replace this placeholder with the real assigned code before submitting.
 -->
 
 # Abstract
