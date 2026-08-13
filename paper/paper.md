@@ -28,7 +28,7 @@ authors:
 affiliations:
   - name: European Molecular Biology Laboratory, European Bioinformatics Institute (EMBL-EBI), Wellcome Genome Campus, Hinxton, UK
     index: 1
-# date: <!-- TODO: submission date -->
+date: 31/08/2026
 cito-bibliography: paper.bib
 # event: <!-- TODO: confirm event code, e.g. BH25EU or similar -->
 biohackathon_name: "nf-core Hackathon Barcelona 2025"
