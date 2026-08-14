@@ -127,17 +127,72 @@ In the submission stage, all three workflows first register the target ENA study
 
 ## Reads submission
 
-The `reads` mode registers raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection and strategy, insert size, and a library name/description). TODO: feels like a table required here. SeqSubmit packages this metadata into Webin-CLI-compatible manifests and submits it with Webin-CLI [@webincli], registering the corresponding EXPERIMENT and RUN entities under the target study and linking them to the given SAMPLE. Each registered EXPERIMENT is assigned an ERX-prefixed accession and each RUN an ERR-prefixed accession; both are reported in the pipeline's output summary table. RUN accessions are what downstream modes (`metagenomic_assemblies`, `mags`, `bins`) expect as their source-RUN reference.
+The `reads` mode registers raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection and strategy, insert size, and a library name/description) (Table 2).
+
+Table: Metadata fields the user provides to SeqSubmit for the `reads` mode.
+
+| Field | Required | Target ENA record |
+| --- | --- | --- |
+| Entry ID | Yes | EXPERIMENT |
+| SAMPLE accession | Yes | EXPERIMENT, RUN |
+| Forward reads (FASTQ) | Yes | RUN |
+| Reverse reads (FASTQ) | No | RUN |
+| Sequencing platform | Yes | EXPERIMENT |
+| Sequencer instrument | Yes | EXPERIMENT |
+| Library source | Yes | EXPERIMENT |
+| Library selection | Yes | EXPERIMENT |
+| Library strategy | Yes | EXPERIMENT |
+| Insert size | No | EXPERIMENT |
+| Library name | No | EXPERIMENT |
+| Description | No | EXPERIMENT |
+
+SeqSubmit packages this metadata into Webin-CLI-compatible manifests and submits it with Webin-CLI [@webincli], registering the corresponding EXPERIMENT and RUN entities under the target study and linking them to the given SAMPLE. Each registered EXPERIMENT is assigned an ERX-prefixed accession and each RUN an ERR-prefixed accession; both are reported in the pipeline's output summary table. RUN accessions are what downstream modes (`metagenomic_assemblies`, `mags`, `bins`) expect as their source-RUN reference.
 
 ## Metagenomic assembly submission
 
-The `metagenomic_assemblies` mode takes an assembly FASTA file together with the run accession of the reads it was generated from. It performs FASTA validation — including the ENA requirement that metagenomic assemblies contain at least two contigs — before proceeding. Sequencing-depth coverage is mandatory for ENA submission; users can supply a pre-computed value, or SeqSubmit will estimate it from the original reads using CoverM [@coverm]. Once coverage is available, SeqSubmit prepares a CSV file matching assembly\_uploader's expected input format; assembly\_uploader [@assemblyuploader] then fetches additional metadata from ENA API and compiles this into an ENA-compliant manifest, which is submitted via Webin-CLI. Each successfully submitted assembly is assigned a unique ENA accession (ERZ-prefixed), reported in the pipeline's output summary table.
+The `metagenomic_assemblies` mode takes an assembly FASTA file together with the run accession of the reads it was generated from (Table 3). It performs FASTA validation — including the ENA requirement that metagenomic assemblies contain at least two contigs — before proceeding. Sequencing-depth coverage is mandatory for ENA submission; users can supply a pre-computed value, or SeqSubmit will estimate it from the original reads using CoverM [@coverm].
+
+Table: Metadata fields the user provides to SeqSubmit for the `metagenomic_assemblies` mode.
+
+| Field | Required | Target ENA record |
+| --- | --- | --- |
+| Entry ID | Yes | ANALYSIS |
+| Assembly FASTA | Yes | ANALYSIS |
+| Coverage | No — computed automatically from reads if not supplied | ANALYSIS |
+| Run accession | Yes | ANALYSIS |
+| Assembler | Yes | ANALYSIS |
+| Assembler version | Yes | ANALYSIS |
+
+Once coverage is available, SeqSubmit prepares a CSV file matching assembly\_uploader's expected input format; assembly\_uploader [@assemblyuploader] then fetches additional metadata from ENA API and compiles this into an ENA-compliant manifest, which is submitted via Webin-CLI. Each successfully submitted assembly is assigned a unique ENA accession (ERZ-prefixed), reported in the pipeline's output summary table.
 
 ## MAG and bin submission
 
 The `mags` and `bins` modes share a single workflow (`GENOMESUBMIT`) because they follow a similar submission process: both require broadly similar metadata, and both require registering a dedicated genome SAMPLE — derived from the original source SAMPLE — for every submitted MAG or bin. This step is necessary because an ENA ANALYSIS record does not itself carry taxonomy metadata: taxonomy is inherited from whichever SAMPLE the ANALYSIS is attached to. Since each MAG or bin has its own taxonomic identity, distinct from the source SAMPLE's, SeqSubmit registers a new, genome-specific SAMPLE for each one so that its taxonomy is correctly and individually inherited by the resulting ANALYSIS record. Where `mags` and `bins` modes differ is in this SAMPLE itself: each targets a different ENA checklist and is registered as a different assembly type — "Metagenome-Assembled Genome (MAG)" for `mags` and "binned metagenome" for `bins`.
 
-The `mags` and `bins` modes require more extensive metadata than assembly submission, in line with ENA's MIMAG/MISAG checklists [@ena_checklist_mags; @ena_checklist_bins]: genome completeness and contamination, coverage, taxonomic assignment, and standardised environmental context descriptors (`broad_environment`, `local_environment`, `environmental_medium`) describing where the sample was collected. The environmental descriptors must always be supplied by the user, as SeqSubmit has no way to infer them from the input data; the remaining values are computed automatically when not already supplied: taxonomic classification via BAT from the CAT\_pack suite [@catbat], detection of the rRNA/tRNA genes used to assign the ENA assembly-quality category via Barrnap [@barrnap] and tRNAscan-SE [@trnascanse], completeness/contamination via CheckM2 [@checkm2], and coverage via CoverM [@coverm] when raw reads are provided. SeqSubmit prepares a TSV file matching genome\_uploader's expected input format. For each MAG or bin, genome\_uploader [@genomeuploader] then fetches additional metadata from ENA API, registers a dedicated SAMPLE entity — ensuring correct taxonomy tracking per genome even when many are derived from the same original sample — and compiles the corresponding metadata into a Webin-CLI-compatible manifest, which is then submitted via Webin-CLI. This results in an ENA study containing one genome record per submitted MAG or bin, each assigned an accession (ERZ-prefixed) reported in the output summary table.
+The `mags` and `bins` modes require more extensive metadata than assembly submission (Table 4), in line with ENA's MIMAG/MISAG checklists [@ena_checklist_mags; @ena_checklist_bins]: genome completeness and contamination, coverage, taxonomic assignment, and standardised environmental context descriptors (`broad_environment`, `local_environment`, `environmental_medium`) describing where the sample was collected. The environmental descriptors must always be supplied by the user, as SeqSubmit has no way to infer them from the input data; the remaining values are computed automatically when not already supplied: taxonomic classification via BAT from the CAT\_pack suite [@catbat], detection of the rRNA/tRNA genes used to assign the ENA assembly-quality category via Barrnap [@barrnap] and tRNAscan-SE [@trnascanse], completeness/contamination via CheckM2 [@checkm2], and coverage via CoverM [@coverm] when raw reads are provided.
+
+Table: Metadata fields the user provides to SeqSubmit for the `mags` and `bins` modes.
+
+| Field | Required | Target ENA record |
+| --- | --- | --- |
+| Genome name | Yes | SAMPLE, ANALYSIS |
+| Genome FASTA | Yes | ANALYSIS |
+| Genome coverage | No — computed automatically from reads if not supplied | ANALYSIS |
+| Source run/assembly accession | Yes | SAMPLE |
+| Assembly software | Yes | SAMPLE |
+| Binning software | Yes | SAMPLE |
+| Binning parameters | Yes | SAMPLE |
+| Statistics-generation software | No — genome quality statistics recomputed automatically if not provided  | SAMPLE |
+| Completeness | No — computed automatically | SAMPLE |
+| Contamination | No — computed automatically | SAMPLE |
+| Metagenome (taxonomic identifier) | Yes | SAMPLE |
+| Broad environmental context | Yes | SAMPLE |
+| Local environmental context | Yes | SAMPLE |
+| Environmental medium | Yes | SAMPLE |
+| rRNA/tRNA presence | No — computed automatically | SAMPLE |
+| NCBI taxonomic lineage | No — computed automatically | SAMPLE |
+
+SeqSubmit prepares a TSV file matching genome\_uploader's expected input format. For each MAG or bin, genome\_uploader [@genomeuploader] then fetches additional metadata from ENA API, registers a dedicated SAMPLE entity — ensuring correct taxonomy tracking per genome even when many are derived from the same original sample — and compiles the corresponding metadata into a Webin-CLI-compatible manifest, which is then submitted via Webin-CLI. This results in an ENA study containing one genome record per submitted MAG or bin, each assigned an accession (ERZ-prefixed) reported in the output summary table.
 
 
 <!-- TODO: confirm with Germana Baldi whether additional accession types (e.g. GCA/WGS) are also
@@ -160,6 +215,8 @@ To wrap the submission helpers each mode depends on, we developed nine pipeline-
 For taxonomic classification, we developed the `fasta_classify_catpack` subworkflow based on the tools from CAT\_pack and contributed it back to the central nf-core/subworkflows repository, making it directly reusable by other nf-core pipelines. Three further subworkflows were kept local to SeqSubmit: one for input validation, one for genome quality assessment (based on CheckM2), and one for rRNA/tRNA gene detection (uses barrnap and tRNAscan-SE).
 
 All input metadata is validated against dedicated JSON schemas — one per mode's samplesheet, plus one for the pipeline's own parameters — so malformed or incomplete input is caught with an informative error before a run starts, rather than failing partway through submission.
+
+Alongside the pipeline itself, we wrote detailed usage documentation covering all four modes, available at [nf-co.re/seqsubmit/usage](https://nf-co.re/seqsubmit/usage) [@seqsubmit_usage_docs].
 
 We also built a suite of 18 nf-test tests exercising each module and workflow under the range of situations SeqSubmit is designed to handle: for example, whether a target STUDY accession is supplied or needs to be registered automatically, whether required statistics (coverage, completeness, contamination, taxonomy) are supplied or need to be computed, and single- versus paired-end reads.
 
