@@ -133,16 +133,16 @@ Table: Metadata fields the user provides to SeqSubmit for the `reads` mode.
 
 | Field | Required | Target ENA record |
 | --- | --- | --- |
-| Entry ID | Yes | EXPERIMENT |
-| SAMPLE accession | Yes | EXPERIMENT, RUN |
+| Experiment name | Yes | EXPERIMENT |
+| SAMPLE accession | Yes | EXPERIMENT |
 | Sequencing platform | Yes | EXPERIMENT |
 | Sequencer instrument | Yes | EXPERIMENT |
 | Library source | Yes | EXPERIMENT |
 | Library selection | Yes | EXPERIMENT |
 | Library strategy | Yes | EXPERIMENT |
-| Insert size | No | EXPERIMENT |
 | Library name | No | EXPERIMENT |
-| Description | No | EXPERIMENT |
+| Library description | No | EXPERIMENT |
+| Insert size | No | EXPERIMENT |
 
 SeqSubmit packages this metadata into Webin-CLI-compatible manifests and submits it with Webin-CLI [@webincli], registering the corresponding EXPERIMENT and RUN entities under the target study and linking them to the given SAMPLE. Each registered EXPERIMENT is assigned an ERX-prefixed accession and each RUN an ERR-prefixed accession; both are reported in the pipeline's output summary table. RUN accessions are what downstream modes (`metagenomic_assemblies`, `mags`, `bins`) expect as their source-RUN reference.
 
@@ -154,7 +154,7 @@ Table: Metadata fields the user provides to SeqSubmit for the `metagenomic_assem
 
 | Field | Required | Target ENA record |
 | --- | --- | --- |
-| Entry ID | Yes | ANALYSIS |
+| Assembly name | Yes | ANALYSIS |
 | Assembly FASTA | Yes | ANALYSIS |
 | Coverage | No — computed automatically | ANALYSIS |
 | Run accession | Yes | ANALYSIS |
