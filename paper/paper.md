@@ -135,8 +135,6 @@ Table: Metadata fields the user provides to SeqSubmit for the `reads` mode.
 | --- | --- | --- |
 | Entry ID | Yes | EXPERIMENT |
 | SAMPLE accession | Yes | EXPERIMENT, RUN |
-| Forward reads (FASTQ) | Yes | RUN |
-| Reverse reads (FASTQ) | No | RUN |
 | Sequencing platform | Yes | EXPERIMENT |
 | Sequencer instrument | Yes | EXPERIMENT |
 | Library source | Yes | EXPERIMENT |
@@ -158,7 +156,7 @@ Table: Metadata fields the user provides to SeqSubmit for the `metagenomic_assem
 | --- | --- | --- |
 | Entry ID | Yes | ANALYSIS |
 | Assembly FASTA | Yes | ANALYSIS |
-| Coverage | No — computed automatically from reads if not supplied | ANALYSIS |
+| Coverage | No — computed automatically | ANALYSIS |
 | Run accession | Yes | ANALYSIS |
 | Assembler | Yes | ANALYSIS |
 | Assembler version | Yes | ANALYSIS |
@@ -177,7 +175,7 @@ Table: Metadata fields the user provides to SeqSubmit for the `mags` and `bins` 
 | --- | --- | --- |
 | Genome name | Yes | SAMPLE, ANALYSIS |
 | Genome FASTA | Yes | ANALYSIS |
-| Genome coverage | No — computed automatically from reads if not supplied | ANALYSIS |
+| Genome coverage | No — computed automatically | ANALYSIS |
 | Source run/assembly accession | Yes | SAMPLE |
 | Assembly software | Yes | SAMPLE |
 | Binning software | Yes | SAMPLE |
