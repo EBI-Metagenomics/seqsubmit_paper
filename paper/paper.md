@@ -155,7 +155,6 @@ Table: Metadata fields the user provides to SeqSubmit for the `metagenomic_assem
 | Field | Required | Target ENA record |
 | --- | --- | --- |
 | Assembly name | Yes | ANALYSIS |
-| Assembly FASTA | Yes | ANALYSIS |
 | Coverage | No — computed automatically | ANALYSIS |
 | Run accession | Yes | ANALYSIS |
 | Assembler | Yes | ANALYSIS |
@@ -174,7 +173,6 @@ Table: Metadata fields the user provides to SeqSubmit for the `mags` and `bins` 
 | Field | Required | Target ENA record |
 | --- | --- | --- |
 | Genome name | Yes | SAMPLE, ANALYSIS |
-| Genome FASTA | Yes | ANALYSIS |
 | Genome coverage | No — computed automatically | ANALYSIS |
 | Source run/assembly accession | Yes | SAMPLE |
 | Assembly software | Yes | SAMPLE |
