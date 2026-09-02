@@ -68,7 +68,7 @@ Sequencing experiments generate valuable data that should be shared with the sci
 
 # Background
 
-Data sharing plays a vital role in advancing scientific research. By openly sharing datasets, scientists allow their work to continue benefiting the scientific community – enabling others to validate findings and build upon existing work thereby accelerating discovery across disciplines. There are many ways to make data publicly available, such as hosting files on institutional FTP servers or depositing datasets in general-purpose repositories like Zenodo [@zenodo], Figshare [@figshare], Dryad [@dryad2010], or institutional archives. These platforms provide accessible storage, assign persistent identifiers (e.g. DOIs), and support long-term preservation of research outputs.
+Data sharing plays a vital role in advancing scientific research. By openly sharing datasets, scientists allow their work to continue benefiting the scientific community – enabling others to validate findings and build upon existing work, thereby accelerating discovery across disciplines. There are many ways to make data publicly available, such as hosting files on institutional FTP servers or depositing datasets in general-purpose repositories like Zenodo [@zenodo], Figshare [@figshare], Dryad [@dryad2010], or institutional archives. These platforms provide accessible storage, assign persistent identifiers (e.g. DOIs), and support long-term preservation of research outputs.
 
 However, general-purpose repositories are not well-suited for nucleotide sequence data. While they support file storage and citation, they do not enforce standardized metadata schemas or structured relationships between biological data entities, nor do they integrate deposited data into global sequence search systems. As a result, they fall short of the FAIR principles: discovery, integration, and reuse become significantly more difficult.
 
@@ -84,7 +84,7 @@ Over years of submitting metagenomic assemblies and bins/MAGs to ENA, the MGnify
 
 SeqSubmit targets ENA as its first supported database, reflecting the MGnify team's existing expertise and infrastructure. As the project grows and attracts contributors familiar with NCBI and DDBJ submission systems, we intend to extend support to those databases.
 
-SeqSubmit v1.0.0 implements four modes — `reads`, `metagenomic_assemblies`, `mags` and `bins` — each routed to a dedicated workflow (Table 1). Each workflow of the pipeline follows its own internal logic and processing flow defined by metadata requirements and submission procedure of each data type.
+SeqSubmit v1.0.0 implements four modes — `reads`, `metagenomic_assemblies`, `mags`, and `bins` — each routed to a dedicated workflow (Table 1). Each workflow of the pipeline follows its own internal logic and processing flow defined by metadata requirements and submission procedure of each data type.
 
 Table: SeqSubmit's four submission modes and their corresponding pipeline workflows.
 
@@ -109,13 +109,13 @@ Table: ENA's data model.
 | RUN | Raw sequencing data (e.g. FASTQ files) |
 | ANALYSIS | Processed data (e.g. assemblies, MAGs, annotations) |
 
-This hierarchy mirrors how sequencing experiments are actually designed and run — a STUDY groups the SAMPLEs under investigation, each SAMPLE is sequenced through one or more EXPERIMENTs, each EXPERIMENT produces one or more RUNs, and any downstream ANALYSIS is performed on those RUNs. Because every entity is required to reference its parent, metadata is inherited rather than re-entered at each level: a SAMPLE's collection and taxonomic metadata automatically carries through to everything sequenced or derived from it, so submitters only need to supply what is genuinely new at each step. This keeps raw data and any products derived from it traceable back to their origin, consistently validated, and machine-readable — precisely the properties needed to satisfy the FAIR principles referenced above. SeqSubmit's modes map directly onto that model (shown on Figure 1): `reads` mode registers EXPERIMENT and RUN entities that reference pre-existing SAMPLE records, while `metagenomic_assemblies`, `mags` and `bins` modes register ANALYSIS entities that reference pre-existing RUN records. In every case, the data submitted is ultimately associated with a STUDY — the top-level container into which all of ENA's records, raw or derived, are organised.
+This hierarchy mirrors how sequencing experiments are actually designed and run — a STUDY groups the SAMPLEs under investigation, each SAMPLE is sequenced through one or more EXPERIMENTs, each EXPERIMENT produces one or more RUNs, and any downstream ANALYSIS is performed on those RUNs. Because every entity is required to reference its parent, metadata is inherited rather than re-entered at each level: a SAMPLE's collection and taxonomic metadata automatically carries through to everything sequenced or derived from it, so submitters only need to supply what is genuinely new at each step. This keeps raw data and any products derived from it traceable back to their origin, consistently validated, and machine-readable — precisely the properties needed to satisfy the FAIR principles referenced above. SeqSubmit's modes map directly onto that model (shown on Figure 1): `reads` mode registers EXPERIMENT and RUN entities that reference pre-existing SAMPLE records, while `metagenomic_assemblies`, `mags`, and `bins` modes register ANALYSIS entities that reference pre-existing RUN records. In every case, the data submitted is ultimately associated with a STUDY — the top-level container into which all of ENA's records, raw or derived, are organised.
 
 ![Figure 1: ENA data-model entity relationships for each SeqSubmit mode. Red entities and reference links must already exist in ENA before submission; green entities and links are created during submission; grey entities and links are optional and may already exist. For `bins`/`mags` mode, panels (A) and (B) correspond to the two accepted forms of the source accession — a RUN or an ANALYSIS, respectively (Table 5). For clarity, all panels show submission data being added to the same STUDY as the source data; in practice this is not required, and a different STUDY, either user-supplied or created by SeqSubmit, may be used instead (see Implementation).](../figures/data_model_schema.png)
 
 ## ENA Webin account and data ownership
 
-Creating new studies, registering samples, and uploading raw reads, assemblies, MAGs, and other sequence data requires a dedicated Webin account, created through the Webin Portal [@ena_webin_portal]. Registration issues each user a unique Webin ID and password, which serve as the primary authentication credentials for all ENA submissions, downstream data management and private data access — SeqSubmit's submission steps rely on exactly these credentials. 
+Creating new studies, registering samples, and uploading raw reads, assemblies, MAGs, and other sequence data requires a dedicated Webin account, created through the Webin Portal [@ena_webin_portal]. Registration issues each user a unique Webin ID and password, which serve as the primary authentication credentials for all ENA submissions, downstream data management, and private data access — SeqSubmit's submission steps rely on exactly these credentials. 
 
 Whoever creates a STUDY becomes its owner, and from that point on only the owner — or a user they have explicitly granted permission to — can submit data to it. More generally, every piece of data submitted to ENA has an owner, determined by the Webin account it was submitted under, and only that owner can manage it afterwards — for example, updating its metadata.
 
@@ -126,7 +126,7 @@ A practical question that arose during development is whether derived data (asse
 -->
 ## Private vs public data in ENA
 
-Whether a given piece of data is public or private is determined at the STUDY level: privacy is not set per record but is a property of the STUDY it belongs to, controlled by a "Hold until date" specified when the STUDY is created. Before that date, the STUDY and everything submitted under it remain private and visible only to its owner; once the date is reached, the data is released automatically. This hold period can be set to at most two years from the submission date. The mechanism exists to let researchers formally register their data and obtain permanent accessions — often a requirement from funders and journals — without having to make the data public immediately, for example while a manuscript describing it is still under review or a related dataset is still being generated. Crucially, this transition only goes one way: once a STUDY's hold period has elapsed and its data has become public, it cannot be made private again. SeqSubmit exposes the hold date as a pipeline parameter, so users can reserve their submissions this way without any manual step in ENA's own submission interfaces.
+Whether a given piece of data is public or private is determined at the STUDY level: privacy is not set per record but is a property of the STUDY it belongs to, controlled by a "Hold until date" specified when the STUDY is created. Before that date, the STUDY and everything submitted under it remain private and visible only to its owner; once the date is reached, the data is released automatically. This hold period can be set to at most two years from the submission date. The mechanism exists to let researchers formally register their data and obtain permanent accessions — often a requirement from funders and journals — without having to make the data public immediately, for example, while a manuscript describing it is still under review or a related dataset is still being generated. Crucially, this transition only goes one way: once a STUDY's hold period has elapsed and its data has become public, it cannot be made private again. SeqSubmit exposes the hold date as a pipeline parameter, so users can reserve their submissions this way without any manual step in ENA's own submission interfaces.
 
 # Implementation
 
@@ -134,7 +134,7 @@ As is conventional for nf-core pipelines, every mode takes its input as a sample
 
 ![Figure 2: SeqSubmit pipeline schema, showing raw reads, metagenomic assemblies, and MAGs/bins as inputs routed through their respective submission workflows to ENA.](../figures/seqsubmit_schema.png)
 
-In the data validation stage, input FASTA files are checked for basic format compliance, and that the assembly contains more than one contig — a requirement ENA enforces for all assembly-type submissions [@ena_fileprep_assembly]. We also plan to add an optional human-sequence decontamination step at this stage; it is not yet implemented in v1.0.0.
+In the data validation stage, input FASTA files are checked for basic format compliance and for containing more than one contig — a requirement ENA enforces for all assembly-type submissions [@ena_fileprep_assembly]. We also plan to add an optional human-sequence decontamination step at this stage; it is not yet implemented in v1.0.0.
 
 In the second stage, SeqSubmit computes any of the characteristics required for ENA submission that are missing from the input samplesheet, so users only need to provide what they already have. For `metagenomic_assemblies` this is limited to coverage depth. For `mags` and `bins`, submission additionally requires taxonomic classification, genome completeness and contamination values, and information on the presence or absence of rRNA and tRNA genes — used together to assign the MISAG/MIMAG assembly-quality category.
 
@@ -142,7 +142,7 @@ In the submission stage, all three workflows (Table 1) first register the target
 
 ## Reads submission
 
-The `reads` mode registers raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection and strategy, insert size, and a library name/description) (Table 3).
+The `reads` mode registers raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection, strategy, insert size, and a library name/description) (Table 3).
 
 Table: Metadata fields the user provides to SeqSubmit for the `reads` mode.
 
@@ -159,7 +159,7 @@ Table: Metadata fields the user provides to SeqSubmit for the `reads` mode.
 | Library description | No | EXPERIMENT |
 | Insert size | No | EXPERIMENT |
 
-SeqSubmit packages this metadata into Webin-CLI-compatible manifests and submits it with Webin-CLI [@webincli], registering the corresponding EXPERIMENT and RUN entities under the target study and linking them to the given SAMPLE. Each registered EXPERIMENT is assigned an ERX-prefixed accession and each RUN an ERR-prefixed accession; both are reported in the pipeline's output summary table. RUN accessions are what downstream modes (`metagenomic_assemblies`, `mags`, `bins`) expect as their source-RUN reference.
+SeqSubmit packages this metadata into Webin-CLI-compatible manifests and submits it with Webin-CLI [@webincli], registering the corresponding EXPERIMENT and RUN entities under the target study and linking them to the given SAMPLE. Each registered EXPERIMENT is assigned an ERX-prefixed accession and each RUN an ERR-prefixed accession; both are reported in the pipeline's output summary table. RUN accessions are what downstream modes (`metagenomic_assemblies`, `mags`, and `bins`) expect as their source-RUN reference.
 
 ## Metagenomic assembly submission
 
@@ -175,7 +175,7 @@ Table: Metadata fields the user provides to SeqSubmit for the `metagenomic_assem
 | Assembler | Yes | ANALYSIS |
 | Assembler version | Yes | ANALYSIS |
 
-Once coverage is available, SeqSubmit prepares a CSV file matching assembly\_uploader's expected input format; assembly\_uploader [@assemblyuploader] then fetches additional metadata from ENA API and compiles this into an ENA-compliant manifest, which is submitted via Webin-CLI. Each successfully submitted assembly is assigned a unique ENA accession (ERZ-prefixed), reported in the pipeline's output summary table.
+Once coverage is available, SeqSubmit prepares a CSV file matching assembly\_uploader's expected input format; assembly\_uploader [@assemblyuploader] then fetches additional metadata from the ENA API and compiles this into an ENA-compliant manifest, which is submitted via Webin-CLI. Each successfully submitted assembly is assigned a unique ENA accession (ERZ-prefixed), reported in the pipeline's output summary table.
 
 ## MAG and bin submission
 
@@ -203,7 +203,7 @@ Table: Metadata fields the user provides to SeqSubmit for the `mags` and `bins` 
 | rRNA/tRNA presence | No — computed automatically | SAMPLE |
 | NCBI taxonomic lineage | No — computed automatically | SAMPLE |
 
-SeqSubmit prepares a TSV file matching genome\_uploader's expected input format. For each MAG or bin, genome\_uploader [@genomeuploader] then fetches additional metadata from ENA API, registers a dedicated SAMPLE entity — ensuring correct taxonomy tracking per genome even when many are derived from the same original sample — and compiles the corresponding metadata into a Webin-CLI-compatible manifest, which is then submitted via Webin-CLI. This results in an ENA study containing one genome record per submitted MAG or bin, each assigned an accession (ERZ-prefixed) reported in the output summary table.
+SeqSubmit prepares a TSV file matching genome\_uploader's expected input format. For each MAG or bin, genome\_uploader [@genomeuploader] then fetches additional metadata from the ENA API, registers a dedicated SAMPLE entity — ensuring correct taxonomy tracking per genome even when many are derived from the same original sample — and compiles the corresponding metadata into a Webin-CLI-compatible manifest, which is then submitted via Webin-CLI. This results in an ENA study containing one genome record per submitted MAG or bin, each assigned an accession (ERZ-prefixed) reported in the output summary table.
 
 
 <!-- TODO: confirm with Germana Baldi whether additional accession types (e.g. GCA/WGS) are also
@@ -221,7 +221,7 @@ SeqSubmit is developed under the nf-core template and community standards [@nfco
 
 Work on SeqSubmit began in October 2025 at the nf-core Hackathon Barcelona 2025, where the project's initial two workflows, ASSEMBLYSUBMIT (mode `metagenomic_assemblies`) and GENOMESUBMIT (modes `mags` and `bins`), were started. Both workflows were completed at the nf-core Hackathon – March 2026 (11–13 March 2026, hybrid in-person/online) [@nfcore_hackathon_march2026], where work on the third mode, `reads`, also began. The `reads` mode was completed in Spring 2026 at the nf-core/seqsubmit project of the 2026 Virus Bioinformatics + nf-core Hybrid Collaborative Hackathon, a satellite event of the International Virus Bioinformatics Meeting 2026 (ViBioM 2026) held online and in Vilnius, Lithuania [@vibiom2026_hackathon]. Version 1.0.0, bringing all four modes together, was released in August 2026.
 
-To wrap the submission helpers each mode depends on, we developed nine pipeline-specific local modules: `registerstudy` and `ena_webin_cli_wrapper` handle study registration and submission itself; `create_assembly_metadata_csv` and `create_genome_metadata_tsv` prepare a CSV/TSV files matching assembly\_uploader's and genome\_uploader's expected input formats; `create_reads_manifest`, `generate_assembly_manifest` and `genome_upload` prepare and submit the manifests for each data type via assembly\_uploader and genome\_uploader; and `rename_fasta_for_catpack` and `count_rna` support the taxonomic and rRNA/tRNA characterisation used by the `mags`/`bins` mode. Alongside these, we reused nine existing modules from the central nf-core/modules repository (including barrnap, CheckM2, CoverM, CAT\_pack and tRNAscan-SE).
+To wrap the submission helpers each mode depends on, we developed nine pipeline-specific local modules: `registerstudy` and `ena_webin_cli_wrapper` handle study registration and submission itself; `create_assembly_metadata_csv` and `create_genome_metadata_tsv` prepare CSV/TSV files matching assembly\_uploader's and genome\_uploader's expected input formats; `create_reads_manifest`, `generate_assembly_manifest`, and `genome_upload` prepare and submit the manifests for each data type via assembly\_uploader and genome\_uploader; and `rename_fasta_for_catpack` and `count_rna` support the taxonomic and rRNA/tRNA characterisation used by the `mags`/`bins` mode. Alongside these, we reused nine existing modules from the central nf-core/modules repository (including barrnap, CheckM2, CoverM, CAT\_pack, and tRNAscan-SE).
 
 For taxonomic classification, we developed the `fasta_classify_catpack` subworkflow based on the tools from CAT\_pack and contributed it back to the central nf-core/subworkflows repository, making it directly reusable by other nf-core pipelines. Three further subworkflows were kept local to SeqSubmit: one for input validation, one for genome quality assessment (based on CheckM2), and one for rRNA/tRNA gene detection (uses barrnap and tRNAscan-SE).
 
@@ -231,7 +231,7 @@ Alongside the pipeline itself, we wrote detailed usage documentation covering al
 
 We also built a suite of 18 nf-test tests exercising each module and workflow under the range of situations SeqSubmit is designed to handle: for example, whether a target STUDY accession is supplied or needs to be registered automatically, whether required statistics (coverage, completeness, contamination, taxonomy) are supplied or need to be computed, and single- versus paired-end reads.
 
-Beyond its own test suite, SeqSubmit has already been used in production: a partner project used the `metagenomic_assemblies`, `mags` and `bins` modes to submit its data to ENA, resulting in over 26,000 bins and MAGs and more than 5,000 assemblies (TODO: find real number of Christina's assemblies) deposited.
+Beyond its own test suite, SeqSubmit has already been used in production: a partner project used the `metagenomic_assemblies`, `mags`, and `bins` modes to submit its data to ENA, resulting in over 26,000 bins and MAGs, and more than 5,000 assemblies (TODO: find real number of Christina's assemblies) deposited.
 
 # Discussion
 
