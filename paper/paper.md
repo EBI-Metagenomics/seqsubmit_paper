@@ -34,7 +34,7 @@ event: SEQSUBMIT25 # TODO: placeholder — replace with the real registered even
 biohackathon_name: "nf-core Hackathon Barcelona 2025"
 biohackathon_url: "https://summit.nextflow.io/2025/barcelona/"
 biohackathon_location: "Barcelona, Spain, 2025"
-group: SeqSubmit
+group: seqsubmit
 # URL to project git repo --- should contain the actual paper.md:
 git_url: https://github.com/EBI-Metagenomics/seqsubmit_paper
 # This is the short authors description that is used at the
@@ -62,7 +62,7 @@ TODO before submission:
 
 # Abstract
 
-Sequencing experiments generate valuable data that should be shared with the scientific community through public repositories, in line with FAIR principles (Findable, Accessible, Interoperable, and Reusable [@fair2016]). Yet submission to nucleotide sequence archives remains a persistent bottleneck: researchers must navigate complex, database-specific metadata schemas and multi-step, interdependent submission procedures before a single record is deposited. We present *nf-core/seqsubmit*, an nf-core Nextflow [@nextflow] pipeline that automates the submission of raw sequencing reads, metagenomic assemblies, and metagenome-assembled genomes (MAGs) and bins to the European Nucleotide Archive (ENA). Building on Python tools developed by the MGnify team for internal submissions to ENA, *nf-core/seqsubmit* computes required statistics (e.g. coverage depth for assemblies) when they are not already available, assembles metadata in the format of ENA-compliant manifests, and performs validated submission via ENA's Webin-CLI [@webincli]. Version 1.0.0, released in August 2026, supports four data types and is available as a community-maintained, fully containerised nf-core pipeline. We describe the pipeline's design, its submission workflows, and the engineering choices behind it, and discuss current limitations and further development.
+Sequencing experiments generate valuable data that should be shared with the scientific community through public repositories, in line with FAIR principles (Findable, Accessible, Interoperable, and Reusable [@fair2016]). Yet submission to nucleotide sequence archives remains a persistent bottleneck: researchers must navigate complex, database-specific metadata schemas and multi-step, interdependent submission procedures before a single record is deposited. We present *nf-core/seqsubmit*, an nf-core Nextflow [@nextflow] pipeline that automates the submission of raw sequencing reads, metagenomic assemblies, and Metagenome-Assembled Genomes (MAGs) and bins to the European Nucleotide Archive (ENA) [@ena2024]. Building on Python tools developed by the MGnify team for internal submissions to ENA, *nf-core/seqsubmit* computes required statistics (e.g. coverage depth for assemblies) when they are not already available, assembles metadata in the format of ENA-compliant manifests, and performs validated submission via ENA's Webin-CLI [@webincli]. Version 1.0.0, released in August 2026, supports four data types and is available as a community-maintained, fully containerised nf-core pipeline at <https://github.com/nf-core/seqsubmit>. We describe the pipeline's design, its submission workflows, and the engineering choices behind it, and discuss current limitations and further development.
 
 **Keywords:** nf-core, Nextflow, ENA, INSDC, metagenomics, FAIR data
 
@@ -72,7 +72,7 @@ Data sharing plays a vital role in advancing scientific research. By openly shar
 
 However, general-purpose repositories are not well-suited for nucleotide sequence data. While they support file storage and citation, they do not enforce standardized metadata schemas or structured relationships between biological data entities, nor do they integrate deposited data into global sequence search systems. As a result, they fall short of the FAIR principles: discovery, integration, and reuse become significantly more difficult.
 
-For biological sequence data, the International Nucleotide Sequence Database Collaboration (INSDC) — comprising the EMBL-EBI European Nucleotide Archive (ENA) [@ena2024], NCBI GenBank [@genbank2024], and the DNA Data Bank of Japan (DDBJ) [@ddbj2024] — provides a unified, internationally synchronized archiving system designed specifically for nucleotide sequences. However, submission to INSDC databases is considerably more complex than uploading files to a general repository. Each provider has different submission interfaces, tools, and requirements, making submission itself a significant challenge that requires expertise.
+For biological sequence data, the International Nucleotide Sequence Database Collaboration (INSDC) — comprising the EMBL-EBI European Nucleotide Archive (ENA) [@ena2024], NCBI GenBank [@genbank2024], and the DNA Data Bank of Japan (DDBJ) [@ddbj2024] — provides a unified, internationally synchronized archiving system designed specifically for nucleotide sequences: data submitted to any one of the three databases is mirrored to the other two, so a single submission becomes available through all three. However, submission to INSDC databases is considerably more complex than uploading files to a general repository. Each provider has different submission interfaces, tools, and requirements, making submission itself a significant challenge that requires expertise.
 
 The authors of this pipeline's idea and hackathon project leaders are members of the MGnify team [@mgnify2023] – EMBL-EBI's resource for processing and storing metagenomic data. MGnify interacts with INSDC databases primarily by retrieving raw metagenomic reads from ENA and depositing back derivative sequence data.
 
@@ -82,18 +82,18 @@ Over years of submitting metagenomic assemblies and bins/MAGs to ENA, the MGnify
 
 # Pipeline design
 
-*nf-core/seqsubmit* targets ENA as its first supported database, reflecting the MGnify team's existing expertise and infrastructure. As the project grows and attracts contributors familiar with NCBI and DDBJ submission systems, we intend to extend support to those databases.
+*nf-core/seqsubmit* targets ENA as its first supported database, reflecting the MGnify team's existing expertise and infrastructure.
 
 *nf-core/seqsubmit* v1.0.0 implements four modes — `reads`, `metagenomic_assemblies`, `mags`, and `bins` — each routed to a dedicated workflow (Table 1). Each workflow of the pipeline follows its own internal logic and processing flow defined by metadata requirements and submission procedure of each data type.
 
 Table: *nf-core/seqsubmit*'s four submission modes and their corresponding pipeline workflows.
 
-| Mode                     | Workflow         | Data type                     |
-| ------------------------ | ---------------- | ------------------------------ |
-| `reads`                  | READSUBMIT       | Raw sequencing reads           |
-| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies         |
-| `mags`                   | GENOMESUBMIT     | Metagenome-assembled genomes   |
-| `bins`                   | GENOMESUBMIT     | Metagenomic bins               |
+| Mode                     | Workflow         | Data type                     | Input format |
+| ------------------------ | ---------------- | ------------------------------ | ------------ |
+| `reads`                  | READSUBMIT       | Raw sequencing reads           | FASTQ        |
+| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies         | FASTA        |
+| `mags`                   | GENOMESUBMIT     | Metagenome-assembled genomes   | FASTA        |
+| `bins`                   | GENOMESUBMIT     | Metagenomic bins               | FASTA        |
 
 ## ENA data model
 
@@ -111,11 +111,13 @@ Table: ENA's data model.
 
 This hierarchy mirrors how sequencing experiments are actually designed and run — a STUDY groups the SAMPLEs under investigation, each SAMPLE is sequenced through one or more EXPERIMENTs, each EXPERIMENT produces one or more RUNs, and any downstream ANALYSIS is performed on those RUNs. Because every entity is required to reference its parent, metadata is inherited rather than re-entered at each level: a SAMPLE's collection and taxonomic metadata automatically carries through to everything sequenced or derived from it, so submitters only need to supply what is genuinely new at each step. This keeps raw data and any products derived from it traceable back to their origin, consistently validated, and machine-readable — precisely the properties needed to satisfy the FAIR principles referenced above. *nf-core/seqsubmit*'s modes map directly onto that model (shown on Figure 1): `reads` mode registers EXPERIMENT and RUN entities that reference pre-existing SAMPLE records, while `metagenomic_assemblies`, `mags`, and `bins` modes register ANALYSIS entities that reference pre-existing RUN records. In every case, the data submitted is ultimately associated with a STUDY — the top-level container into which all of ENA's records, raw or derived, are organised.
 
+![Figure 1: ENA data-model entity relationships for each *nf-core/seqsubmit* mode. Red entities and reference links must already exist in ENA before submission; green entities and links are created during submission; grey entities and links are optional and may already exist. For `bins`/`mags` mode, panels (A) and (B) correspond to the two accepted forms of the source accession — a RUN or an ANALYSIS, respectively (Table 5). For clarity, all panels show submission data being added to the same STUDY as the source data; in practice this is not required, and a different STUDY, either user-supplied or created by *nf-core/seqsubmit*, may be used instead (see Implementation).](../figures/data_model_schema.png)
+
 ## ENA Webin account and data ownership
 
 Creating new studies, registering samples, and uploading raw reads, assemblies, MAGs, and other sequence data requires a dedicated Webin account, created through the Webin Portal [@ena_webin_portal]. Registration issues each user a unique Webin ID and password, which serve as the primary authentication credentials for all ENA submissions, downstream data management, and private data access — *nf-core/seqsubmit*'s submission steps rely on exactly these credentials. 
 
-Whoever creates a STUDY becomes its owner, and from that point on only the owner — or a user they have explicitly granted permission to — can submit data to it. More generally, every piece of data submitted to ENA has an owner, determined by the Webin account it was submitted under, and only that owner can manage it afterwards — for example, updating its metadata.
+Ownership of a STUDY belongs to the Webin account under which it was created, and only that account — or a user its holder has explicitly granted permission to — can submit data to it afterwards. More generally, every piece of data submitted to ENA has an owner, determined by the Webin account it was submitted under, and only that owner can manage it afterwards — for example, updating its metadata.
 
 <!-- TODO I need to decide how to rewrite/delete this section: 
 *nf-core/seqsubmit* is designed to sit at the end of an analysis pipeline. In a typical metagenomics workflow, raw reads (already submitted to ENA) are used to generate assemblies, which are in turn used to derive bins and MAGs — for example with nf-core/mag [@krakau2022nfcoremag]. *nf-core/seqsubmit* consumes these final data products, computes any missing required statistics, compiles the associated ENA metadata, and performs a fully automated, validated submission using ENA's Webin-CLI [@webincli] — the command-line client officially supported by ENA.
@@ -128,11 +130,9 @@ In ENA, private data has been formally registered and assigned permanent accessi
 
 Whether a given piece of data is public or private is determined at the STUDY level: privacy is not set per record but is a property of the STUDY it belongs to, controlled by a "Hold until date" specified when the STUDY is created. Before that date, the STUDY and everything submitted under it remain private and visible only to its owner; once the date is reached, the data is released automatically. This hold period can be set to at most two years from the submission date. The mechanism exists to let researchers formally register their data and obtain permanent accessions — often a requirement from funders and journals — without having to make the data public immediately, for example, while a manuscript describing it is still under review or a related dataset is still being generated. Crucially, this transition only goes one way: once a STUDY's hold period has elapsed and its data has become public, it cannot be made private again. *nf-core/seqsubmit* exposes the hold date as a pipeline parameter, letting users set it without any manual step in ENA's own submission interfaces; this only takes effect when the pipeline itself registers the target study, since for a pre-existing study the hold date was already fixed at its creation and cannot be changed through this parameter.
 
-![Figure 1: ENA data-model entity relationships for each *nf-core/seqsubmit* mode. Red entities and reference links must already exist in ENA before submission; green entities and links are created during submission; grey entities and links are optional and may already exist. For `bins`/`mags` mode, panels (A) and (B) correspond to the two accepted forms of the source accession — a RUN or an ANALYSIS, respectively (Table 5). For clarity, all panels show submission data being added to the same STUDY as the source data; in practice this is not required, and a different STUDY, either user-supplied or created by *nf-core/seqsubmit*, may be used instead (see Implementation).](../figures/data_model_schema.png)
-
 # Implementation
 
-As is conventional for nf-core pipelines, every mode takes its input as a samplesheet, with one row per record to be submitted; the exact columns required differ by mode. All four submission modes then share a common three-stage structure, shown in Figure 2: (1) data validation, (2) calculation of the characteristics required for submission, and (3) submission to ENA. The `reads` mode (READSUBMIT) skips the first two stages, since ENA's requirements for raw reads include no computed statistics, so reads are submitted directly using the metadata already supplied in the input samplesheet; `metagenomic_assemblies` (ASSEMBLYSUBMIT) and `mags`/`bins` (GENOMESUBMIT) pass through all three.
+As is conventional for nf-core pipelines, every mode takes its input as a samplesheet, with one row per record to be submitted; the exact columns required differ by mode. All four submission modes (listed in Table 1) then share a common three-stage structure, shown in Figure 2: (1) data validation, (2) calculation of the characteristics required for submission, and (3) submission to ENA. The `reads` mode (READSUBMIT) skips the first two stages, since ENA's requirements for raw reads include no computed statistics, so reads are submitted directly using the metadata already supplied in the input samplesheet; `metagenomic_assemblies` (ASSEMBLYSUBMIT) and `mags`/`bins` (GENOMESUBMIT) pass through all three.
 
 ![Figure 2: *nf-core/seqsubmit* pipeline schema, showing raw reads, metagenomic assemblies, and MAGs/bins as inputs routed through their respective submission workflows to ENA.](../figures/seqsubmit_schema.png)
 
@@ -144,7 +144,7 @@ In the submission stage, all three workflows (Table 1) first ensure a target ENA
 
 ## Reads submission
 
-The `reads` mode registers raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection, strategy, insert size, and a library name/description) (Table 3).
+In the `reads` mode, the READSUBMIT workflow handles registration of raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection, strategy, insert size, and a library name/description) (Table 3).
 
 Table: Metadata fields the user provides to *nf-core/seqsubmit* for the `reads` mode.
 
@@ -165,7 +165,7 @@ Table: Metadata fields the user provides to *nf-core/seqsubmit* for the `reads` 
 
 ## Metagenomic assembly submission
 
-The `metagenomic_assemblies` mode takes an assembly FASTA file together with the run accession of the reads it was generated from (Table 4). It performs FASTA validation — including the ENA requirement that metagenomic assemblies contain at least two contigs — before proceeding. Sequencing-depth coverage is mandatory for ENA submission; users can supply a pre-computed value, or *nf-core/seqsubmit* will estimate it from the original reads using CoverM [@coverm].
+The `metagenomic_assemblies` mode runs the ASSEMBLYSUBMIT workflow. Its input is an assembly FASTA file together with the run accession of the reads it was generated from (Table 4). It performs FASTA validation — including the ENA requirement that metagenomic assemblies contain at least two contigs — before proceeding. Sequencing-depth coverage is mandatory for ENA submission; users can supply a pre-computed value, or *nf-core/seqsubmit* will estimate it from the original reads using CoverM [@coverm].
 
 Table: Metadata fields the user provides to *nf-core/seqsubmit* for the `metagenomic_assemblies` mode.
 
