@@ -233,7 +233,7 @@ Alongside the pipeline itself, we wrote detailed usage documentation covering al
 
 We also built a suite of 18 nf-test tests exercising each module and workflow under the range of situations *nf-core/seqsubmit* is designed to handle: for example, whether a target STUDY accession is supplied or needs to be registered automatically, whether required statistics (coverage, completeness, contamination, taxonomy) are supplied or need to be computed, and single- versus paired-end reads.
 
-Beyond its own test suite, *nf-core/seqsubmit* has already been used in production: a partner project used the `metagenomic_assemblies`, `mags`, and `bins` modes to submit its data to ENA, resulting in over 26,000 bins and MAGs, and more than 5,000 assemblies (TODO: find real number of Christina's assemblies) deposited.
+Beyond its own test suite, *nf-core/seqsubmit* has already been used in production: a partner project used the `metagenomic_assemblies`, `mags`, and `bins` modes to submit its data to ENA, resulting in 26,621 bins, 4,756 MAGs, and 801 assemblies deposited.
 
 # Discussion
 
