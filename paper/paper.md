@@ -88,30 +88,20 @@ Over years of submitting metagenomic assemblies and bins/MAGs to ENA, the MGnify
 
 Table: *nf-core/seqsubmit*'s four submission modes and their corresponding pipeline workflows.
 
-| Mode                     | Workflow         | Data type                     | Input format |
-| ------------------------ | ---------------- | ------------------------------ | ------------ |
-| `reads`                  | READSUBMIT       | Raw sequencing reads           | FASTQ        |
-| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies         | FASTA        |
-| `mags`                   | GENOMESUBMIT     | Metagenome-assembled genomes   | FASTA        |
-| `bins`                   | GENOMESUBMIT     | Metagenomic bins               | FASTA        |
+| Mode                     | Workflow         | Data type                     |
+| ------------------------ | ---------------- | ------------------------------ |
+| `reads`                  | READSUBMIT       | Raw sequencing reads           |
+| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies         |
+| `mags`                   | GENOMESUBMIT     | Metagenome-assembled genomes   |
+| `bins`                   | GENOMESUBMIT     | Metagenomic bins               |
 
 ## ENA data model
 
-The pipeline modes follow the model ENA uses to organise sequencing data (Table 2; see the ENA documentation for details [@ena_submit_docs]):
+The pipeline modes follow the model ENA uses to organise sequencing data (Figure 1; see the ENA documentation for details [@ena_submit_docs]).
 
-Table: ENA's data model.
+![Figure 1: ENA's data model.](../figures/data_model.png)
 
-| Entity | Description |
-| --- | --- |
-| STUDY | The overarching research project |
-| SAMPLE | Biological specimens with associated metadata |
-| EXPERIMENT | Sequencing of a sample, with library preparation details |
-| RUN | Raw sequencing data (e.g. FASTQ files) |
-| ANALYSIS | Processed data (e.g. assemblies, MAGs, annotations) |
-
-This hierarchy mirrors how sequencing experiments are actually designed and run — a STUDY groups the SAMPLEs under investigation, each SAMPLE is sequenced through one or more EXPERIMENTs, each EXPERIMENT produces one or more RUNs, and any downstream ANALYSIS is performed on those RUNs. Because every entity is required to reference its parent, metadata is inherited rather than re-entered at each level: a SAMPLE's collection and taxonomic metadata automatically carries through to everything sequenced or derived from it, so submitters only need to supply what is genuinely new at each step. This keeps raw data and any products derived from it traceable back to their origin, consistently validated, and machine-readable — precisely the properties needed to satisfy the FAIR principles referenced above. *nf-core/seqsubmit*'s modes map directly onto that model (shown on Figure 1): `reads` mode registers EXPERIMENT and RUN entities that reference pre-existing SAMPLE records, while `metagenomic_assemblies`, `mags`, and `bins` modes register ANALYSIS entities that reference pre-existing RUN records. In every case, the data submitted is ultimately associated with a STUDY — the top-level container into which all of ENA's records, raw or derived, are organised.
-
-![Figure 1: ENA data-model entity relationships for each *nf-core/seqsubmit* mode. Red entities and reference links must already exist in ENA before submission; green entities and links are created during submission; grey entities and links are optional and may already exist. For `bins`/`mags` mode, panels (A) and (B) correspond to the two accepted forms of the source accession — a RUN or an ANALYSIS, respectively (Table 5). For clarity, all panels show submission data being added to the same STUDY as the source data; in practice this is not required, and a different STUDY, either user-supplied or created by *nf-core/seqsubmit*, may be used instead (see Implementation).](../figures/data_model_schema.png)
+This hierarchy mirrors how sequencing experiments are actually designed and run — a STUDY groups the SAMPLEs under investigation, each SAMPLE is sequenced through one or more EXPERIMENTs, each EXPERIMENT produces one or more RUNs, and any downstream ANALYSIS is performed on those RUNs. Because every entity is required to reference its parent, metadata is inherited rather than re-entered at each level: a SAMPLE's collection and taxonomic metadata automatically carries through to everything sequenced or derived from it, so submitters only need to supply what is genuinely new at each step. This keeps raw data and any products derived from it traceable back to their origin, consistently validated, and machine-readable — precisely the properties needed to satisfy the FAIR principles referenced above. *nf-core/seqsubmit*'s modes map directly onto that model (shown on Figure 2): `reads` mode registers EXPERIMENT and RUN entities that reference pre-existing SAMPLE records, while `metagenomic_assemblies`, `mags`, and `bins` modes register ANALYSIS entities that reference pre-existing RUN records. In every case, the data submitted is ultimately associated with a STUDY — the top-level container into which all of ENA's records, raw or derived, are organised.
 
 ## ENA Webin account and data ownership
 
@@ -124,6 +114,9 @@ Ownership of a STUDY belongs to the Webin account under which it was created, an
 
 A practical question that arose during development is whether derived data (assemblies, MAGs, bins) must be submitted under a *new* ENA study, separate from the one holding the original raw reads. This is a **recommendation rather than a requirement**: users remain free to submit under their existing study if they own it. *nf-core/seqsubmit* defaults to creating a new, linked study mainly because outputs such as metagenomic assemblies are typically registered as Third Party Annotation (TPA) data, which cannot be added to the original raw-reads study; a new, explicitly linked study keeps this relationship traceable without constraining users who prefer to keep everything under one project.
 -->
+
+![Figure 2: ENA data-model entity relationships for each *nf-core/seqsubmit* mode. Red entities and reference links must already exist in ENA before submission; green entities and links are created during submission; grey entities and links are optional and may already exist. For `bins`/`mags` mode, panels (A) and (B) correspond to the two accepted forms of the source accession — a RUN or an ANALYSIS, respectively (Table 4). For clarity, all panels show submission data being added to the same STUDY as the source data; in practice this is not required, and a different STUDY, either user-supplied or created by *nf-core/seqsubmit*, may be used instead (see Implementation).](../figures/data_model_schema.png)
+
 ## Private vs public data in ENA
 
 In ENA, private data has been formally registered and assigned permanent accessions, but is not retrievable through ENA's public browser, API, or search interfaces — only the owning Webin account (or a user it has explicitly granted permission to) can access it. Public data, by contrast, is fully available: anyone can find, browse, and download it through ENA's standard interfaces. Visibility is therefore the only distinction between the two states; the underlying record and its accessions do not change when data transitions from private to public.
@@ -132,9 +125,9 @@ Whether a given piece of data is public or private is determined at the STUDY le
 
 # Implementation
 
-As is conventional for nf-core pipelines, every mode takes its input as a samplesheet, with one row per record to be submitted; the exact columns required differ by mode. All four submission modes (listed in Table 1) then share a common three-stage structure, shown in Figure 2: (1) data validation, (2) calculation of the characteristics required for submission, and (3) submission to ENA. The `reads` mode (READSUBMIT) skips the first two stages, since ENA's requirements for raw reads include no computed statistics, so reads are submitted directly using the metadata already supplied in the input samplesheet; `metagenomic_assemblies` (ASSEMBLYSUBMIT) and `mags`/`bins` (GENOMESUBMIT) pass through all three.
+As is conventional for nf-core pipelines, every mode takes its input as a samplesheet, with one row per record to be submitted; the exact columns required differ by mode. All four submission modes (listed in Table 1) then share a common three-stage structure, shown in Figure 3: (1) data validation, (2) calculation of the characteristics required for submission, and (3) submission to ENA. The `reads` mode (READSUBMIT) skips the first two stages, since ENA's requirements for raw reads include no computed statistics, so reads are submitted directly using the metadata already supplied in the input samplesheet; `metagenomic_assemblies` (ASSEMBLYSUBMIT) and `mags`/`bins` (GENOMESUBMIT) pass through all three.
 
-![Figure 2: *nf-core/seqsubmit* pipeline schema, showing raw reads, metagenomic assemblies, and MAGs/bins as inputs routed through their respective submission workflows to ENA.](../figures/seqsubmit_schema.png)
+![Figure 3: *nf-core/seqsubmit* pipeline schema, showing raw reads, metagenomic assemblies, and MAGs/bins as inputs routed through their respective submission workflows to ENA.](../figures/seqsubmit_schema.png)
 
 In the data validation stage, input FASTA files are checked for basic format compliance and for containing more than one contig — a requirement ENA enforces for all assembly-type submissions [@ena_fileprep_assembly]. We also plan to add an optional human-sequence decontamination step at this stage; it is not yet implemented in v1.0.0.
 
@@ -144,7 +137,7 @@ In the submission stage, all three workflows (Table 1) first ensure a target ENA
 
 ## Reads submission
 
-In the `reads` mode, the READSUBMIT workflow handles registration of raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection, strategy, insert size, and a library name/description) (Table 3).
+In the `reads` mode, the READSUBMIT workflow handles registration of raw sequencing reads with ENA. Alongside the FASTQ files, users provide the accession of the source SAMPLE the reads were generated from, along with the sequencing platform and instrument, and the library preparation metadata ENA requires to describe an EXPERIMENT (source, selection, strategy, insert size, and a library name/description) (Table 2).
 
 Table: Metadata fields the user provides to *nf-core/seqsubmit* for the `reads` mode.
 
@@ -165,7 +158,7 @@ Table: Metadata fields the user provides to *nf-core/seqsubmit* for the `reads` 
 
 ## Metagenomic assembly submission
 
-The `metagenomic_assemblies` mode runs the ASSEMBLYSUBMIT workflow. Its input is an assembly FASTA file together with the run accession of the reads it was generated from (Table 4). It performs FASTA validation — including the ENA requirement that metagenomic assemblies contain at least two contigs — before proceeding. Sequencing-depth coverage is mandatory for ENA submission; users can supply a pre-computed value, or *nf-core/seqsubmit* will estimate it from the original reads using CoverM [@coverm].
+The `metagenomic_assemblies` mode runs the ASSEMBLYSUBMIT workflow. Its input is an assembly FASTA file together with the run accession of the reads it was generated from (Table 3). It performs FASTA validation — including the ENA requirement that metagenomic assemblies contain at least two contigs — before proceeding. Sequencing-depth coverage is mandatory for ENA submission; users can supply a pre-computed value, or *nf-core/seqsubmit* will estimate it from the original reads using CoverM [@coverm].
 
 Table: Metadata fields the user provides to *nf-core/seqsubmit* for the `metagenomic_assemblies` mode.
 
@@ -185,7 +178,7 @@ The `mags` and `bins` modes share a single workflow (`GENOMESUBMIT`) because the
 
 Because both modes accept binned genomes, it may not be obvious which one a given genome should be submitted under. Per ENA's guidance [@ena_mag_docs], `bins` is the default: it accepts any set of contigs identified as belonging to a single taxon, with no upper limit on how many bins a study can contain, so the full output of a binning run should normally be submitted this way. `mags` is reserved for a much smaller, curated subset — at most one genome per species within a biome, selected as the highest-quality, most representative assembly for that taxon (for example via de-replication) and expected to meet ENA's high-quality MIMAG thresholds. In practice, this means submitting the complete set of derived genomes as `bins`, and separately submitting only the single best representative per species as a `mags` record.
 
-The `mags` and `bins` modes require more extensive metadata than assembly submission (Table 5), in line with their checklists: genome completeness and contamination, coverage, taxonomic assignment, and standardised environmental context descriptors (`broad_environment`, `local_environment`, `environmental_medium`) describing where the sample was collected. The environmental descriptors must always be supplied by the user, as *nf-core/seqsubmit* has no way to infer them from the input data; the remaining values are computed automatically when not already supplied: taxonomic classification via BAT from the CAT\_pack suite [@catbat], detection of the rRNA/tRNA genes used to assign the ENA assembly-quality category via Barrnap [@barrnap] and tRNAscan-SE [@trnascanse], completeness/contamination via CheckM2 [@checkm2], and coverage via CoverM [@coverm] when raw reads are provided.
+The `mags` and `bins` modes require more extensive metadata than assembly submission (Table 4), in line with their checklists: genome completeness and contamination, coverage, taxonomic assignment, and standardised environmental context descriptors (`broad_environment`, `local_environment`, `environmental_medium`) describing where the sample was collected. The environmental descriptors must always be supplied by the user, as *nf-core/seqsubmit* has no way to infer them from the input data; the remaining values are computed automatically when not already supplied: taxonomic classification via BAT from the CAT\_pack suite [@catbat], detection of the rRNA/tRNA genes used to assign the ENA assembly-quality category via Barrnap [@barrnap] and tRNAscan-SE [@trnascanse], completeness/contamination via CheckM2 [@checkm2], and coverage via CoverM [@coverm] when raw reads are provided.
 
 Table: Metadata fields the user provides to *nf-core/seqsubmit* for the `mags` and `bins` modes.
 
