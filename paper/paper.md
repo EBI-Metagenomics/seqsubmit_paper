@@ -9,13 +9,13 @@ tags:
   - metagenomics
   - data submission
 authors:
-  - name: Ekaterina Sakharova
-    affiliation: 1
-    role: Software, Writing – review & editing
-    # orcid: TODO
   - name: Sofia Ochkalova
     affiliation: 1
     role: Software, Writing – original draft
+    # orcid: TODO
+  - name: Ekaterina Sakharova
+    affiliation: 1
+    role: Software, Writing – review & editing
     # orcid: TODO
   - name: Martin Beracochea
     affiliation: 1
