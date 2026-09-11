@@ -90,10 +90,10 @@ Table: *nf-core/seqsubmit*'s four submission modes and their corresponding pipel
 
 | Mode                     | Workflow         | Data type                     |
 | ------------------------ | ---------------- | ------------------------------ |
-| `reads`                  | READSUBMIT       | Raw sequencing reads           |
-| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies         |
-| `mags`                   | GENOMESUBMIT     | Metagenome-assembled genomes   |
-| `bins`                   | GENOMESUBMIT     | Metagenomic bins               |
+| `reads`                  | READSUBMIT       | Raw sequencing reads (FASTQ)           |
+| `metagenomic_assemblies` | ASSEMBLYSUBMIT   | Metagenomic assemblies (FASTA)         |
+| `mags`                   | GENOMESUBMIT     | MAGs (FASTA)   |
+| `bins`                   | GENOMESUBMIT     | Metagenomic bins (FASTA)               |
 
 ## ENA data model
 
